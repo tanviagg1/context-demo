@@ -3,9 +3,17 @@
 # Run this and say "my name is Alice", then ask "what is my name?"
 # The LLM will not know your name.
 
-import anthropic
+import requests
 
-client = anthropic.Anthropic()
+def ask(message: str) -> str:
+    response = requests.post("http://localhost:11434/api/chat", json={
+        "model": "llama3",
+        "stream": False,
+        "messages": [
+            {"role": "user", "content": message}  # only THIS message — no history
+        ]
+    })
+    return response.json()["message"]["content"]
 
 print("=== Chatbot with NO context ===")
 print("Try: say 'my name is Alice', then ask 'what is my name?'")
@@ -16,14 +24,5 @@ while True:
     if user_input.lower() == "quit":
         break
 
-    # ❌ Every message is sent ALONE — no history
-    response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=200,
-        messages=[
-            {"role": "user", "content": user_input}  # only THIS message
-        ]
-    )
-
-    reply = response.content[0].text
+    reply = ask(user_input)
     print(f"Bot: {reply}\n")

@@ -1,12 +1,18 @@
 # CONCEPT 3: Sliding Window
-# Problem: if you chat for 1000 messages, the context gets too big and expensive.
+# Problem: if you chat for 1000 messages, the context gets too big.
 # Fix: only keep the last N messages. Old ones are dropped.
 
-import anthropic
-
-client = anthropic.Anthropic()
+import requests
 
 MAX_MESSAGES = 6  # only keep the last 6 messages (3 exchanges)
+
+def ask(messages: list) -> str:
+    response = requests.post("http://localhost:11434/api/chat", json={
+        "model": "llama3",
+        "stream": False,
+        "messages": messages
+    })
+    return response.json()["message"]["content"]
 
 print("=== Chatbot with SLIDING WINDOW (last 6 messages only) ===")
 print(f"Only the last {MAX_MESSAGES} messages are remembered.")
@@ -20,26 +26,14 @@ while True:
     if user_input.lower() == "quit":
         break
 
-    conversation_history.append({
-        "role": "user",
-        "content": user_input
-    })
+    conversation_history.append({"role": "user", "content": user_input})
 
     # ✅ Trim: only keep the last MAX_MESSAGES messages
     trimmed_history = conversation_history[-MAX_MESSAGES:]
 
-    response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=200,
-        messages=trimmed_history
-    )
+    reply = ask(trimmed_history)
 
-    reply = response.content[0].text
-
-    conversation_history.append({
-        "role": "assistant",
-        "content": reply
-    })
+    conversation_history.append({"role": "assistant", "content": reply})
 
     total = len(conversation_history)
     sending = len(trimmed_history)
