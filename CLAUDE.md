@@ -22,7 +22,8 @@ python <program_name>.py
 | `1_no_context.py` | No context | LLM forgets everything — each message sent alone |
 | `2_with_context.py` | Full context | Full conversation history sent every turn |
 | `3_sliding_window.py` | Sliding window | Only last 6 messages kept — older ones dropped |
-| `4_system_prompt_and_rag.py` | System prompt + RAG | System prompt shapes behaviour, RAG injects relevant facts |
+| `4_system_prompt_and_rag.py` | System prompt + RAG | System prompt shapes behaviour, RAG injects relevant facts (keyword matching) |
+| `5_vector_rag.py` | Vector RAG | Same as 4 but uses ChromaDB + sentence-transformers for semantic search |
 
 ## Key concepts
 

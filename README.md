@@ -1,6 +1,6 @@
 # Context Handling — Learn by doing
 
-4 programs, each teaching one concept. Uses Ollama (local, free, no API key).
+5 programs, each teaching one concept. Uses Ollama (local, free, no API key).
 
 ## Setup
 ```bash
@@ -11,6 +11,9 @@ cd context-demo
 python3 -m venv venv
 source venv/bin/activate
 pip install requests
+
+# For program 5 (vector RAG) only
+pip install chromadb sentence-transformers
 
 # Start Ollama in background
 ollama serve
@@ -161,14 +164,63 @@ LLM answers accurately from injected fact ✅
 
 Watch `[RAG injected: ...]` to see which fact was found.
 
+**Limitation:** Uses keyword overlap — "cost" won't match "pricing". See Program 5 for the fix.
+
 ---
 
-## The 4 concepts at a glance
+## Program 5 — Vector RAG
+
+**File:** `5_vector_rag.py`
+
+**Run:**
+```bash
+python 5_vector_rag.py
+```
+
+**What it teaches:** The upgraded version of Program 4. Instead of matching by exact words, it converts every fact and every question into a vector (a list of numbers) that captures *meaning*. Two phrases can share no words but still match closely if they mean the same thing.
+
+**How vector search works:**
+```
+You ask: "what does it cost?"
+    ↓
+Embed question → [0.23, -0.81, 0.44, ...]   ← 384 numbers representing meaning
+    ↓
+Compare against stored fact vectors in ChromaDB
+    ↓
+"SkillsApp pricing: Basic $10/month..."  → distance: 0.31  ← closest match ✅
+"SkillsApp supports Python, Java..."     → distance: 1.12
+    ↓
+Inject closest fact into message → LLM answers accurately
+```
+
+**What's different from Program 4:**
+
+| | Program 4 | Program 5 |
+|---|---|---|
+| Search | Keyword overlap | Cosine similarity (vector distance) |
+| "cost" matches "pricing"? | No | Yes |
+| Database | In-memory list | ChromaDB on disk (`./chroma_db/`) |
+| Persists between runs? | No | Yes — indexed once, reloaded each time |
+
+**Try this:**
+1. `what does it cost?` — matches pricing fact even without the word "pricing"
+2. `which version control tools work with it?` — matches the GitHub/Bitbucket fact
+3. `what is the weather today?` — no close match, bot refuses (system prompt still applies)
+
+Watch `[Vector search — best match distance: X.XXX]` — lower = closer match.
+
+> **First run:** downloads the `all-MiniLM-L6-v2` embedding model (~80MB) and indexes facts into `./chroma_db/`. Subsequent runs load instantly from disk.
+
+---
+
+## The 5 concepts at a glance
 
 ```
-Program 1 — No context      → LLM gets 1 message, forgets everything
-Program 2 — With context    → LLM gets full history, remembers everything
-Program 3 — Sliding window  → LLM gets last N messages, old ones dropped
-Program 4 — System prompt   → LLM gets instructions on who it is
-           + RAG             → LLM gets relevant facts injected per question
+Program 1 — No context       → LLM gets 1 message, forgets everything
+Program 2 — With context     → LLM gets full history, remembers everything
+Program 3 — Sliding window   → LLM gets last N messages, old ones dropped
+Program 4 — System prompt    → LLM gets instructions on who it is
+            + keyword RAG    → relevant facts injected by word matching
+Program 5 — System prompt    → same as 4
+            + vector RAG     → facts injected by semantic similarity (ChromaDB)
 ```
