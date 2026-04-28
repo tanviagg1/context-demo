@@ -1,6 +1,6 @@
 # Context Handling — Learn by doing
 
-5 programs, each teaching one concept. Uses Ollama (local, free, no API key).
+7 programs, each teaching one concept. Uses Ollama (local, free, no API key).
 
 ## Setup
 ```bash
@@ -213,14 +213,86 @@ Watch `[Vector search — best match distance: X.XXX]` — lower = closer match.
 
 ---
 
-## The 5 concepts at a glance
+## Program 6 — Strict RAG
+
+**File:** `6_strict_rag.py`
+
+**Run:**
+```bash
+python3 6_strict_rag.py
+```
+
+**What it teaches:** How to force the LLM to answer *only* from injected facts and refuse everything else. Programs 4 and 5 had a loose system prompt — the LLM could still use its training data if it "knew" the answer. Program 6 locks this down.
+
+**What's different from Program 5:**
+
+| | Program 5 | Program 6 |
+|---|---|---|
+| System prompt | "Never make up info" (loose) | "ONLY use [Relevant info] blocks" (strict) |
+| If no fact matches | LLM may answer from training data | LLM refuses every time |
+| Distance threshold | 1.5 (too lenient) | 0.8 (tighter, fewer false injections) |
+| Answer traceability | Partial | Full — every answer maps to a specific fact |
+
+**Try this:**
+1. `what does it cost?` — fact found, bot answers from it only
+2. `who is the CEO?` — no fact matches, bot refuses
+3. `what's the weather?` — no fact matches, bot refuses (unlike program 5)
+
+---
+
+## Program 7 — Versioned RAG
+
+**File:** `7_versioned_rag.py`
+
+**Run:**
+```bash
+python3 7_versioned_rag.py
+```
+
+**What it teaches:** How to safely manage changes to your knowledge base or embedding model over time. Changing either creates incompatible vectors — you need a new collection. Versioning makes this automatic and safe.
+
+**The problem with programs 5 and 6:**
+The collection name was hardcoded. If you switch models or update facts, the old vectors are still in ChromaDB and may be silently used — giving wrong results with no error.
+
+**How versioning works:**
+```python
+KB_VERSION      = "v1"
+EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+COLLECTION_NAME = f"skillsapp_{KB_VERSION}_{EMBEDDING_MODEL}"
+# → "skillsapp_v1_all-MiniLM-L6-v2"
+```
+The collection name encodes exactly what's inside it. Change either variable → new collection auto-created → old one stays on disk for rollback.
+
+**When to bump what:**
+
+| What changed | What to do |
+|---|---|
+| Added, edited, or removed a fact | Bump `KB_VERSION` → `"v2"` |
+| Switched to a different embedding model | Change `EMBEDDING_MODEL` |
+| Both | Change both |
+
+**Built-in CLI tools:**
+```bash
+# See all versions stored on disk
+python3 7_versioned_rag.py --list-versions
+
+# Delete an old version you no longer need
+python3 7_versioned_rag.py --delete-version skillsapp_v1_all-MiniLM-L6-v2
+```
+
+**Rollback:** just change `KB_VERSION` back to the old value — the collection is still on disk, no re-indexing needed.
+
+---
+
+## All concepts at a glance
 
 ```
-Program 1 — No context       → LLM gets 1 message, forgets everything
-Program 2 — With context     → LLM gets full history, remembers everything
-Program 3 — Sliding window   → LLM gets last N messages, old ones dropped
-Program 4 — System prompt    → LLM gets instructions on who it is
-            + keyword RAG    → relevant facts injected by word matching
-Program 5 — System prompt    → same as 4
-            + vector RAG     → facts injected by semantic similarity (ChromaDB)
+Program 1 — No context         → LLM gets 1 message, forgets everything
+Program 2 — With context       → LLM gets full history, remembers everything
+Program 3 — Sliding window     → LLM gets last N messages, old ones dropped
+Program 4 — System prompt      → LLM gets instructions on who it is
+            + keyword RAG      → relevant facts injected by word matching
+Program 5 — Vector RAG         → facts injected by semantic similarity (ChromaDB)
+Program 6 — Strict RAG         → LLM banned from training data, facts only
+Program 7 — Versioned RAG      → collection versioned by KB + model, safe upgrades
 ```
